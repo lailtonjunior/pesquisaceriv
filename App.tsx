@@ -17,19 +17,29 @@ type ViewState = 'welcome' | 'survey' | 'thanks';
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>('welcome');
+  const [isAudioEnabled, setIsAudioEnabled] = useState(false);
 
+  // Efeito para feedback sonoro ao ativar/desativar
   useEffect(() => {
-    if (view === 'welcome') {
+    if (isAudioEnabled) {
+      speak("Leitor de voz ativado. Toque nos textos para ouvir.");
+    } else {
+      cancelSpeech();
+    }
+  }, [isAudioEnabled]);
+
+  // Toca as boas-vindas apenas se o áudio já estiver ativado (ex: persistência futura) ou se o usuário ativar na tela inicial
+  useEffect(() => {
+    if (view === 'welcome' && isAudioEnabled) {
       speak(TEXTS.ttsWelcome);
     }
-    // Cleanup: Garante que o áudio pare se o usuário sair desta view rapidamente
     return () => {
       cancelSpeech();
     };
-  }, [view]);
+  }, [view, isAudioEnabled]);
 
   const handleStart = () => {
-    speak(TEXTS.ttsConfirm);
+    if (isAudioEnabled) speak(TEXTS.ttsConfirm);
     setTimeout(() => {
       setView('survey');
     }, 800);
@@ -44,8 +54,31 @@ const App: React.FC = () => {
   };
 
   const handleReplayAudio = () => {
-    speak(TEXTS.ttsWelcome);
+    if (isAudioEnabled) speak(TEXTS.ttsWelcome);
   };
+
+  const toggleAudio = () => {
+    setIsAudioEnabled(!isAudioEnabled);
+  };
+
+  // Componente Botão de Voz Flutuante
+  const AudioToggle = () => (
+    <button
+      onClick={toggleAudio}
+      className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-2 rounded-full shadow-lg transition-all transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-brand-yellow ${
+        isAudioEnabled 
+          ? 'bg-brand-blue text-white ring-2 ring-white' 
+          : 'bg-white text-gray-600 border-2 border-gray-200'
+      }`}
+      aria-label={isAudioEnabled ? "Desativar leitor de voz" : "Ativar leitor de voz"}
+      aria-pressed={isAudioEnabled}
+    >
+      <span className="text-xl">{isAudioEnabled ? '🔊' : '🔇'}</span>
+      <span className="font-bold text-sm md:text-base hidden sm:inline">
+        {isAudioEnabled ? 'Voz Ativada' : 'Ativar Voz'}
+      </span>
+    </button>
+  );
 
   // Componente de Rodapé do Governo
   const GovernmentFooter = () => (
@@ -122,13 +155,22 @@ const App: React.FC = () => {
             />
           </div>
 
-          <button 
-            onClick={handleReplayAudio}
-            className="flex items-center gap-2 mt-4 text-lg font-bold text-brand-blue hover:text-blue-900 focus:outline-none focus:ring-2 focus:ring-brand-yellow rounded-lg px-4 py-2 transition-colors bg-blue-50"
-            aria-label="Repetir as instruções de voz"
-          >
-            <span>🔊</span> Repetir instruções
-          </button>
+          {/* Botão de Repetir só aparece se o áudio estiver ligado */}
+          {isAudioEnabled && (
+            <button 
+                onClick={handleReplayAudio}
+                className="flex items-center gap-2 mt-4 text-lg font-bold text-brand-blue hover:text-blue-900 focus:outline-none focus:ring-2 focus:ring-brand-yellow rounded-lg px-4 py-2 transition-colors bg-blue-50"
+                aria-label="Repetir as instruções de voz"
+            >
+                <span>🔊</span> Repetir instruções
+            </button>
+          )}
+
+          {!isAudioEnabled && (
+             <p className="text-gray-500 text-sm mt-4 italic">
+                Para ajuda auditiva, ative o botão "Ativar Voz" no topo da tela.
+             </p>
+          )}
         </section>
       </div>
 
@@ -168,11 +210,15 @@ const App: React.FC = () => {
 
   return (
     <>
+      <AudioToggle />
       {view === 'welcome' && renderWelcome()}
       {view === 'survey' && (
         <main className="min-h-screen bg-gray-50 flex flex-col">
           <div className="p-4 md:p-8 flex-grow">
-             <Survey onFinish={handleFinishSurvey} />
+             <Survey 
+                onFinish={handleFinishSurvey} 
+                isAudioEnabled={isAudioEnabled}
+             />
           </div>
           <GovernmentFooter />
         </main>

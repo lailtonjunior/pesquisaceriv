@@ -68,12 +68,15 @@ const QUESTIONS = [
 ];
 
 // Helper component para a dica de áudio
-const AudioHint = () => (
-  <span className="block text-sm md:text-base font-semibold text-brand-blue mt-2 flex items-center gap-2">
-    <span className="bg-brand-blue text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">🔊</span>
-    Toque para ouvir
-  </span>
-);
+const AudioHint = ({ enabled }: { enabled: boolean }) => {
+  if (!enabled) return null;
+  return (
+    <span className="block text-sm md:text-base font-semibold text-brand-blue mt-2 flex items-center gap-2 animate-fade-in">
+      <span className="bg-brand-blue text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">🔊</span>
+      Toque para ouvir
+    </span>
+  );
+};
 
 interface RatingButtonProps {
   num: number;
@@ -119,20 +122,28 @@ const RatingButton: React.FC<RatingButtonProps> = ({ num, isSelected, onSelect }
   );
 };
 
-export const Survey: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
+interface SurveyProps {
+    onFinish: () => void;
+    isAudioEnabled: boolean;
+}
+
+export const Survey: React.FC<SurveyProps> = ({ onFinish, isAudioEnabled }) => {
   const [formData, setFormData] = useState<SurveyData>(INITIAL_DATA);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     const now = new Date().toLocaleString('pt-BR');
     setFormData(prev => ({ ...prev, dataPreenchimento: now }));
-    speak("Iniciando pesquisa de satisfação. Por favor, preencha a identificação abaixo.");
+    
+    if (isAudioEnabled) {
+        speak("Iniciando pesquisa de satisfação. Por favor, preencha a identificação abaixo.");
+    }
     
     // Cleanup: cancela o áudio se o componente for desmontado
     return () => {
       cancelSpeech();
     };
-  }, []);
+  }, [isAudioEnabled]);
 
   const formatCPF = (value: string) => {
     return value
@@ -152,7 +163,9 @@ export const Survey: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
   };
 
   const handleFocus = (text: string) => {
-    speak(text);
+    if (isAudioEnabled) {
+        speak(text);
+    }
   };
 
   const handleModalityToggle = (value: string) => {
@@ -161,8 +174,11 @@ export const Survey: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
       const updated = current.includes(value)
         ? current.filter(item => item !== value)
         : [...current, value];
-      const action = current.includes(value) ? 'desmarcado' : 'marcado';
-      speak(`${value} ${action}`);
+      
+      if (isAudioEnabled) {
+          const action = current.includes(value) ? 'desmarcado' : 'marcado';
+          speak(`${value} ${action}`);
+      }
       return { ...prev, modalidades: updated };
     });
   };
@@ -172,7 +188,9 @@ export const Survey: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
       ...prev,
       avaliacoes: { ...prev.avaliacoes, [questionId]: rating }
     }));
-    speak(`Nota ${rating} selecionada.`);
+    if (isAudioEnabled) {
+        speak(`Nota ${rating} selecionada.`);
+    }
   };
 
   const validate = (): boolean => {
@@ -181,7 +199,7 @@ export const Survey: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
     if (!formData.quemPreenche) newErrors.quemPreenche = 'Informe quem está preenchendo.';
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) {
-      speak("Atenção. Existem campos obrigatórios não preenchidos.");
+      if (isAudioEnabled) speak("Atenção. Existem campos obrigatórios não preenchidos.");
       return false;
     }
     return true;
@@ -190,7 +208,7 @@ export const Survey: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
   const handleSubmit = () => {
     if (validate()) {
       console.log('Dados da Pesquisa:', formData);
-      speak("Pesquisa enviada com sucesso! Muito obrigado pela sua colaboração.");
+      if (isAudioEnabled) speak("Pesquisa enviada com sucesso! Muito obrigado pela sua colaboração.");
       onFinish();
     }
   };
@@ -231,7 +249,7 @@ export const Survey: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
         <p className="text-lg md:text-xl leading-relaxed">
           Sua opinião é fundamental para fortalecermos a <strong>Rede de Cuidados à Pessoa com Deficiência</strong>.
         </p>
-        <AudioHint />
+        <AudioHint enabled={isAudioEnabled} />
       </section>
 
       {/* IDENTIFICAÇÃO */}
@@ -249,7 +267,7 @@ export const Survey: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
           <h3 className="text-2xl md:text-3xl font-brand font-bold text-gray-800">
             Identificação
           </h3>
-          <AudioHint />
+          <AudioHint enabled={isAudioEnabled} />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -301,7 +319,7 @@ export const Survey: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
             <span className="text-lg font-bold text-gray-700 block mb-2">
               4) Quem está preenchendo as informações?
             </span>
-            <AudioHint />
+            <AudioHint enabled={isAudioEnabled} />
           </div>
           <div className="flex flex-col sm:flex-row gap-4">
             <label className={`flex-1 flex items-center gap-4 p-4 border-2 rounded-lg cursor-pointer transition-all ${formData.quemPreenche === 'paciente' ? 'border-brand-blue bg-blue-50' : 'border-gray-200 hover:border-brand-blue'}`}>
@@ -316,7 +334,7 @@ export const Survey: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
                 checked={formData.quemPreenche === 'paciente'}
                 onChange={() => {
                     setFormData(prev => ({...prev, quemPreenche: 'paciente'}));
-                    speak("Próprio paciente selecionado");
+                    if (isAudioEnabled) speak("Próprio paciente selecionado");
                 }}
               />
               <span className="text-lg font-semibold">Próprio paciente</span>
@@ -334,7 +352,7 @@ export const Survey: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
                 checked={formData.quemPreenche === 'responsavel'}
                 onChange={() => {
                     setFormData(prev => ({...prev, quemPreenche: 'responsavel'}));
-                    speak("Responsável selecionado");
+                    if (isAudioEnabled) speak("Responsável selecionado");
                 }}
               />
               <span className="text-lg font-semibold">Responsável</span>
@@ -354,7 +372,7 @@ export const Survey: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
             <span className="text-lg font-bold text-gray-700 block mb-2">
               5) Qual modalidade de reabilitação foi atendido?
             </span>
-            <AudioHint />
+            <AudioHint enabled={isAudioEnabled} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {['Reabilitação Auditiva', 'Reabilitação Física', 'Reabilitação Intelectual', 'Reabilitação Visual'].map((mod) => {
@@ -394,7 +412,7 @@ export const Survey: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
             Avaliação de Satisfação
           </h3>
           <p className="text-gray-700 mt-2 font-medium">Classifique de 0 (Muito Insatisfeito) a 10 (Muito Satisfeito)</p>
-          <AudioHint />
+          <AudioHint enabled={isAudioEnabled} />
         </div>
 
         {QUESTIONS.map((q, idx) => (
@@ -408,7 +426,7 @@ export const Survey: React.FC<{ onFinish: () => void }> = ({ onFinish }) => {
               <h4 className="text-xl font-brand font-bold text-brand-blue mb-2 uppercase tracking-wide">{q.title}</h4>
               <p className="text-base text-gray-500 mb-4">{q.desc}</p>
               <p className="text-xl md:text-2xl font-bold text-gray-900">{q.question}</p>
-              <AudioHint />
+              <AudioHint enabled={isAudioEnabled} />
             </div>
             
             <RatingButtons 
