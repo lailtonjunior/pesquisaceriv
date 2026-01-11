@@ -15,13 +15,17 @@ export const AccessibleButton: React.FC<AccessibleButtonProps> = ({
   variant = 'primary',
   className = ''
 }) => {
-  // Added active:scale-95 for the "shrinking" effect and transition classes
-  const baseStyles = "w-full py-6 px-8 rounded-xl text-2xl md:text-3xl font-bold shadow-lg transition-all duration-150 transform active:scale-95 border-4 focus:outline-none focus:ring-4 focus:ring-offset-2";
+  const baseStyles = "w-full py-5 px-8 rounded-lg text-xl md:text-2xl font-brand font-bold shadow-md transition-all duration-200 transform active:scale-95 border-2 focus:outline-none focus:ring-4 focus:ring-offset-2";
   
   const variants = {
-    primary: "bg-blue-700 text-white border-transparent hover:bg-blue-800 active:bg-blue-900 focus:ring-yellow-400 focus:border-yellow-400",
-    secondary: "bg-white text-blue-800 border-blue-700 hover:bg-gray-100 active:bg-gray-200 focus:ring-blue-500",
-    danger: "bg-red-600 text-white border-transparent hover:bg-red-700 active:bg-red-800 focus:ring-red-400"
+    // Primary usa o Azul da marca com texto branco. Hover escurece levemente. Focus ring usa o Amarelo da marca para alto contraste.
+    primary: "bg-brand-blue text-white border-transparent hover:brightness-110 active:brightness-90 focus:ring-brand-yellow focus:border-transparent",
+    
+    // Secondary usa fundo branco com borda Azul da marca e texto Azul.
+    secondary: "bg-white text-brand-blue border-brand-blue hover:bg-blue-50 active:bg-blue-100 focus:ring-brand-blue",
+    
+    // Danger usa o Vermelho da marca.
+    danger: "bg-brand-red text-white border-transparent hover:bg-red-600 active:bg-red-700 focus:ring-red-400"
   };
 
   return (

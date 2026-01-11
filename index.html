@@ -5,20 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Pesquisa de Satisfação - CER IV APAE Colinas</title>
     <meta name="description" content="Pesquisa de satisfação acessível para o CER IV (APAE)" />
+    
+    <!-- Google Fonts: Raleway (substituto para Rawline) e Open Sans -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,600;0,700;1,400&family=Raleway:wght@400;700;800&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
         theme: {
           extend: {
-            colors: {
-              'cer-blue': '#0056b3',
-              'cer-blue-dark': '#003d80',
-              'cer-yellow': '#ffcc00',
+            fontFamily: {
+              'brand': ['Raleway', 'sans-serif'],
+              'body': ['Open Sans', 'sans-serif'],
             },
-            fontSize: {
-              'app-title': '2.5rem',
-              'app-text': '1.5rem',
-              'app-btn': '1.8rem',
+            colors: {
+              'brand-blue': '#003CFF',
+              'brand-green': '#00C800',
+              'brand-red': '#FF0000',
+              'brand-yellow': '#FFC800',
+              'brand-dark-red': '#870606',
+              'brand-gray': '#333333',
             },
             keyframes: {
               slideIn: {
@@ -49,7 +57,7 @@
 </script>
 <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-gray-50 text-gray-900 antialiased">
+  <body class="bg-white text-brand-gray font-body antialiased selection:bg-brand-yellow selection:text-black">
     <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>
