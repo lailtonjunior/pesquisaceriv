@@ -9,15 +9,23 @@ const TEXTS = {
   subtitle: "Rede de Cuidados à Pessoa com Deficiência",
   welcome: "Sua opinião fortalece o SUS e melhora o atendimento no CER IV.",
   startBtn: "INICIAR PESQUISA",
-  ttsWelcome: "Bem-vindo ao Saúde Sem Limite. Pesquisa de satisfação do Centro Especializado em Reabilitação. Toque em Iniciar Pesquisa.",
-  ttsConfirm: "Carregando questionário.",
-};
+  ttsWelcome: "Bem-vindo ao Saúde Sem Limite. Pesquisa de satisfação do Centro Especializado em Reabilitação CER 4 APAE Colinas. Toque em Iniciar Pesquisa.",
+  ttsConfirm: "Iniciando pesquisa...",
+  };
+
+// PASSO FINAL:
+// 1. No Google Apps Script, clique em "Implantar" > "Nova implantação".
+// 2. Certifique-se que "Quem pode acessar" está como "Qualquer pessoa".
+// 3. Copie a URL que termina em '/exec'.
+// 4. Cole dentro das aspas abaixo.
+const GOOGLE_SCRIPT_URL_ADMIN = "https://script.google.com/macros/s/AKfycbxPebLi-kcJmhBhbbaHdEp4VSQwaYYWF2zHmI5J22vA6OWVB_qP1FDiJV10e1GnEuYr/exec".trim();
 
 type ViewState = 'welcome' | 'survey' | 'thanks';
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>('welcome');
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Efeito para feedback sonoro ao ativar/desativar
   useEffect(() => {
@@ -28,7 +36,7 @@ const App: React.FC = () => {
     }
   }, [isAudioEnabled]);
 
-  // Toca as boas-vindas apenas se o áudio já estiver ativado (ex: persistência futura) ou se o usuário ativar na tela inicial
+  // Toca as boas-vindas apenas se o áudio já estiver ativado
   useEffect(() => {
     if (view === 'welcome' && isAudioEnabled) {
       speak(TEXTS.ttsWelcome);
@@ -59,6 +67,65 @@ const App: React.FC = () => {
 
   const toggleAudio = () => {
     setIsAudioEnabled(!isAudioEnabled);
+  };
+
+  // Função Admin: Aciona a criação do Excel na Nuvem
+  const handleExportData = async () => {
+    if (!GOOGLE_SCRIPT_URL_ADMIN || GOOGLE_SCRIPT_URL_ADMIN.includes("COLE_SUA_URL")) {
+        alert("ERRO DE CONFIGURAÇÃO: URL da API não atualizada. \n\n1. Vá no arquivo App.tsx\n2. Cole a URL na linha 19.\n(É a mesma URL que você deve colar no arquivo Survey.tsx)");
+        return;
+    }
+    
+    // Confirmação para evitar cliques acidentais
+    if (!confirm("Isso gerará um Relatório Excel na pasta do Drive com os dados deste mês. Continuar?")) {
+        return;
+    }
+
+    setIsExporting(true);
+    console.log("--- INICIANDO EXPORTAÇÃO (ADMIN) ---");
+    // console.log("URL:", GOOGLE_SCRIPT_URL_ADMIN);
+
+    try {
+        // TENTATIVA 1: CORS Padrão
+        const response = await fetch(GOOGLE_SCRIPT_URL_ADMIN, {
+            method: 'POST',
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8",
+            },
+            body: JSON.stringify({ action: "EXPORT_MONTHLY" })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+        }
+        
+        const json = await response.json();
+        if (json.status === 'error') {
+            throw new Error(json.message);
+        }
+
+        console.log("Sucesso Admin:", json);
+        alert("Teste enviado! Verifique a aba 'RESPOSTAS' na planilha.");
+
+    } catch (e) {
+        console.warn("Erro no teste Admin (Tentativa 1):", e);
+        try {
+            // TENTATIVA 2: Fallback no-cors
+            await fetch(GOOGLE_SCRIPT_URL_ADMIN, {
+                method: 'POST',
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8",
+                },
+                body: JSON.stringify({ action: "EXPORT_MONTHLY" }),
+                mode: 'no-cors'
+            });
+            alert("Comando enviado (Modo Compatibilidade). Verifique a planilha.");
+        } catch (fatal) {
+             alert("Erro fatal de conexão: " + String(fatal));
+        }
+    } finally {
+        setIsExporting(false);
+    }
   };
 
   // Componente Botão de Voz Flutuante
@@ -94,7 +161,7 @@ const App: React.FC = () => {
             <div className="text-xs font-semibold text-gray-500">Novo Plano Nacional</div>
         </div>
 
-        {/* Bloco da Direita - Logos Institucionais (Simulados com Texto/CSS) */}
+        {/* Bloco da Direita - Logos Institucionais */}
         <div className="flex flex-wrap justify-center md:justify-end items-center gap-6 md:gap-8">
             <div className="font-bold text-gray-600">CER IV</div>
             <div className="h-8 w-px bg-gray-300"></div>
@@ -126,7 +193,7 @@ const App: React.FC = () => {
 
       <div className="flex-grow flex flex-col items-center justify-center p-6 md:p-12 text-center z-10">
         <header className="mb-12 w-full max-w-4xl">
-            {/* Ícone da Marca (Simulado CSS) */}
+            {/* Ícone da Marca */}
             <div className="mx-auto mb-6 w-20 h-20 relative">
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-6 bg-brand-blue rounded-full"></div>
                 <div className="absolute top-7 left-1/2 -translate-x-1/2 w-12 h-6 bg-brand-green rounded-t-full rounded-b-lg"></div>
@@ -194,12 +261,20 @@ const App: React.FC = () => {
                 Sua avaliação contribui para um <strong>Brasil Bem Cuidado</strong>.
             </p>
             
-            <div className="w-full max-w-md mx-auto">
+            <div className="w-full max-w-md mx-auto flex flex-col gap-4">
                 <AccessibleButton 
-                label="Voltar ao Início" 
-                onClick={handleRestart}
-                variant="secondary"
+                  label="Voltar ao Início" 
+                  onClick={handleRestart}
+                  variant="secondary"
                 />
+                 {/* Admin / Debug Button atualizado para Nuvem */}
+                 <button 
+                   onClick={handleExportData}
+                   disabled={isExporting}
+                   className="text-gray-400 text-sm hover:text-brand-blue underline disabled:opacity-50"
+                 >
+                   {isExporting ? "(Processando...)" : "(Admin) Testar Conexão Google Sheet"}
+                 </button>
             </div>
       </div>
       <div className="absolute bottom-0 w-full">

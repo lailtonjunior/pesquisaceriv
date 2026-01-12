@@ -2,10 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { speak, cancelSpeech } from '../services/ttsService';
 import { AccessibleButton } from './AccessibleButton';
 
+// --- CONFIGURAÇÃO DA API ---
+// Se você fez "Nova Versão" na implantação existente, a URL se mantém.
+// Se criou uma "Nova Implantação", atualize aqui.
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxPebLi-kcJmhBhbbaHdEp4VSQwaYYWF2zHmI5J22vA6OWVB_qP1FDiJV10e1GnEuYr/exec".trim(); 
+
 interface SurveyData {
   nome: string;
   cpf: string;
-  dataPreenchimento: string;
+  dataPreenchimento: string; // Exibição amigável
+  timestamp: string; // ISO para ordenação/filtros
   quemPreenche: 'paciente' | 'responsavel' | '';
   modalidades: string[];
   avaliacoes: Record<string, number | null>;
@@ -15,7 +21,8 @@ interface SurveyData {
 const INITIAL_DATA: SurveyData = {
   nome: '',
   cpf: '',
-  dataPreenchimento: '', // Will be set on mount
+  dataPreenchimento: '',
+  timestamp: '',
   quemPreenche: '',
   modalidades: [],
   avaliacoes: {},
@@ -130,16 +137,20 @@ interface SurveyProps {
 export const Survey: React.FC<SurveyProps> = ({ onFinish, isAudioEnabled }) => {
   const [formData, setFormData] = useState<SurveyData>(INITIAL_DATA);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    const now = new Date().toLocaleString('pt-BR');
-    setFormData(prev => ({ ...prev, dataPreenchimento: now }));
+    const now = new Date();
+    setFormData(prev => ({ 
+        ...prev, 
+        dataPreenchimento: now.toLocaleString('pt-BR'),
+        timestamp: now.toISOString() // Formato padrão ISO para banco de dados/excel
+    }));
     
     if (isAudioEnabled) {
         speak("Iniciando pesquisa de satisfação. Por favor, preencha a identificação abaixo.");
     }
     
-    // Cleanup: cancela o áudio se o componente for desmontado
     return () => {
       cancelSpeech();
     };
@@ -205,11 +216,86 @@ export const Survey: React.FC<SurveyProps> = ({ onFinish, isAudioEnabled }) => {
     return true;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (validate()) {
-      console.log('Dados da Pesquisa:', formData);
-      if (isAudioEnabled) speak("Pesquisa enviada com sucesso! Muito obrigado pela sua colaboração.");
+      setIsSubmitting(true);
+      if (isAudioEnabled) speak("Salvando respostas e gerando PDF. Por favor aguarde.");
+
+      // VERIFICAÇÃO SE A URL FOI CONFIGURADA
+      if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL.includes("COLE_SUA_URL")) {
+          alert("ERRO DE CONFIGURAÇÃO: URL do Script não encontrada.\n\nVerifique o arquivo Survey.tsx");
+          setIsSubmitting(false);
+          return;
+      }
+
+      console.log("--- INICIANDO ENVIO (COM GERAÇÃO DE PDF) ---");
+      // console.log("URL:", GOOGLE_SCRIPT_URL); 
+
+      // 1. Backup Local
+      try {
+        const existingDataJSON = localStorage.getItem('cer_iv_survey_responses');
+        const existingData = existingDataJSON ? JSON.parse(existingDataJSON) : [];
+        localStorage.setItem('cer_iv_survey_responses', JSON.stringify([...existingData, formData]));
+      } catch (storageError) {
+        console.warn("Falha ao salvar backup local:", storageError);
+      }
+
+      // 2. Envio para API
+      try {
+        // TENTATIVA 1: Modo CORS padrão
+        const response = await fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            headers: {
+                "Content-Type": "text/plain;charset=utf-8",
+            },
+            body: JSON.stringify({
+                action: "SUBMIT",
+                data: formData
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+        }
+
+        const jsonResponse = await response.json();
+        console.log("Resposta do Servidor:", jsonResponse);
+        
+        // Se a resposta vier "success", verifica se foi a versão com PDF
+        // O script simples não retorna erro, mas o script avançado demora mais
+        console.log("Sucesso. PDF deve ter sido gerado na pasta SURVEY_CER_IV_PDFs.");
+
+      } catch (error) {
+        console.warn("Tentativa 1 falhou. Tentando modo compatibilidade...", error);
+        
+        try {
+            // TENTATIVA 2: Fallback no-cors
+            await fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                headers: {
+                    "Content-Type": "text/plain;charset=utf-8",
+                },
+                body: JSON.stringify({
+                    action: "SUBMIT",
+                    data: formData
+                }),
+                mode: 'no-cors'
+            });
+            
+            console.log("Enviado via Fallback (no-cors).");
+            console.log("IMPORTANTE: Se o PDF não aparecer, verifique se você atualizou o Script no Google para a versão que usa DriveApp e fez 'Nova Versão'.");
+            
+        } catch (fatalError) {
+            console.error("Erro fatal:", fatalError);
+            alert("ERRO DE CONEXÃO. Verifique sua internet.");
+            setIsSubmitting(false);
+            return;
+        }
+      }
+
+      if (isAudioEnabled) speak("Pesquisa salva e PDF gerado com sucesso! Muito obrigado.");
       onFinish();
+      setIsSubmitting(false);
     }
   };
 
@@ -229,7 +315,7 @@ export const Survey: React.FC<SurveyProps> = ({ onFinish, isAudioEnabled }) => {
   return (
     <div className="w-full max-w-5xl mx-auto pb-24 font-body text-brand-gray">
       
-      {/* HEADER DA PESQUISA - Estilo "Cartão do SUS" clean */}
+      {/* HEADER DA PESQUISA */}
       <section 
         className="bg-white border-t-8 border-brand-blue p-8 rounded-b-xl shadow-lg mb-10 animate-slide-in cursor-pointer hover:bg-gray-50 transition-colors"
         onFocus={() => handleFocus("Título: Pesquisa de Satisfação. Questionário para avaliar o Centro Especializado em Reabilitação.")}
@@ -283,7 +369,8 @@ export const Survey: React.FC<SurveyProps> = ({ onFinish, isAudioEnabled }) => {
                 value={formData.nome}
                 onChange={handleInputChange}
                 onFocus={() => handleFocus("Campo Nome. Opcional.")}
-                className="w-full p-4 text-lg border-2 border-gray-300 rounded-lg focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all bg-gray-50 focus:bg-white"
+                disabled={isSubmitting}
+                className="w-full p-4 text-lg border-2 border-gray-300 rounded-lg focus:border-brand-blue focus:ring-1 focus:ring-brand-blue transition-all bg-gray-50 focus:bg-white disabled:opacity-50"
             />
             </div>
 
@@ -301,7 +388,8 @@ export const Survey: React.FC<SurveyProps> = ({ onFinish, isAudioEnabled }) => {
                 onFocus={() => handleFocus("Campo CPF. Obrigatório.")}
                 maxLength={14}
                 placeholder="000.000.000-00"
-                className={`w-full p-4 text-lg border-2 rounded-lg focus:ring-1 transition-all bg-gray-50 focus:bg-white ${errors.cpf ? 'border-brand-red ring-brand-red focus:border-brand-red' : 'border-gray-300 focus:border-brand-blue focus:ring-brand-blue'}`}
+                disabled={isSubmitting}
+                className={`w-full p-4 text-lg border-2 rounded-lg focus:ring-1 transition-all bg-gray-50 focus:bg-white disabled:opacity-50 ${errors.cpf ? 'border-brand-red ring-brand-red focus:border-brand-red' : 'border-gray-300 focus:border-brand-blue focus:ring-brand-blue'}`}
                 aria-invalid={!!errors.cpf}
             />
             {errors.cpf && <span className="text-brand-red font-bold text-sm mt-1">{errors.cpf}</span>}
@@ -332,6 +420,7 @@ export const Survey: React.FC<SurveyProps> = ({ onFinish, isAudioEnabled }) => {
                 value="paciente" 
                 className="sr-only"
                 checked={formData.quemPreenche === 'paciente'}
+                disabled={isSubmitting}
                 onChange={() => {
                     setFormData(prev => ({...prev, quemPreenche: 'paciente'}));
                     if (isAudioEnabled) speak("Próprio paciente selecionado");
@@ -350,6 +439,7 @@ export const Survey: React.FC<SurveyProps> = ({ onFinish, isAudioEnabled }) => {
                 value="responsavel"
                 className="sr-only"
                 checked={formData.quemPreenche === 'responsavel'}
+                disabled={isSubmitting}
                 onChange={() => {
                     setFormData(prev => ({...prev, quemPreenche: 'responsavel'}));
                     if (isAudioEnabled) speak("Responsável selecionado");
@@ -387,6 +477,7 @@ export const Survey: React.FC<SurveyProps> = ({ onFinish, isAudioEnabled }) => {
                         value={mod}
                         className="sr-only"
                         checked={checked}
+                        disabled={isSubmitting}
                         onChange={() => handleModalityToggle(mod)}
                     />
                     <span className="text-lg font-semibold">{mod}</span>
@@ -431,7 +522,7 @@ export const Survey: React.FC<SurveyProps> = ({ onFinish, isAudioEnabled }) => {
             
             <RatingButtons 
               questionId={q.id} 
-              currentRating={formData.avaliacoes[q.id] || null} 
+              currentRating={formData.avaliacoes[q.id] ?? null} 
             />
           </div>
         ))}
@@ -448,7 +539,8 @@ export const Survey: React.FC<SurveyProps> = ({ onFinish, isAudioEnabled }) => {
           value={formData.comentario}
           onChange={handleInputChange}
           onFocus={() => handleFocus("Campo de comentários finais.")}
-          className="w-full p-6 text-lg border-2 border-gray-300 rounded-lg min-h-[160px] focus:border-brand-blue focus:ring-1 focus:ring-brand-blue bg-gray-50 focus:bg-white transition-all resize-y"
+          disabled={isSubmitting}
+          className="w-full p-6 text-lg border-2 border-gray-300 rounded-lg min-h-[160px] focus:border-brand-blue focus:ring-1 focus:ring-brand-blue bg-gray-50 focus:bg-white transition-all resize-y disabled:opacity-50"
           placeholder="Digite sua mensagem aqui..."
         />
       </section>
@@ -456,10 +548,10 @@ export const Survey: React.FC<SurveyProps> = ({ onFinish, isAudioEnabled }) => {
       {/* BOTÃO FINAL */}
       <div className="flex justify-center pb-8 animate-fade-in [animation-delay:800ms]">
         <AccessibleButton 
-          label="ENVIAR AVALIAÇÃO" 
+          label={isSubmitting ? "SALVANDO E GERANDO PDF..." : "ENVIAR AVALIAÇÃO"}
           onClick={handleSubmit} 
           ariaLabel="Botão Enviar avaliação"
-          className="max-w-md shadow-xl hover:shadow-2xl"
+          className={`max-w-md shadow-xl hover:shadow-2xl ${isSubmitting ? 'opacity-70 cursor-wait' : ''}`}
         />
       </div>
     </div>
