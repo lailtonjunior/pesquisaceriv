@@ -318,8 +318,8 @@ export const Survey: React.FC<SurveyProps> = ({ onFinish, isAudioEnabled }) => {
       {/* HEADER DA PESQUISA */}
       <section 
         className="bg-white border-t-8 border-brand-blue p-8 rounded-b-xl shadow-lg mb-10 animate-slide-in cursor-pointer hover:bg-gray-50 transition-colors"
-        onFocus={() => handleFocus("Título: Pesquisa de Satisfação. Questionário para avaliar o Centro Especializado em Reabilitação.")}
-        onClick={() => handleFocus("Título: Pesquisa de Satisfação. Questionário para avaliar o Centro Especializado em Reabilitação.")}
+        onFocus={() => handleFocus("Título: Pesquisa de Satisfação. Questionário para avaliar o CER 4 APAE Colinas.")}
+        onClick={() => handleFocus("Título: Pesquisa de Satisfação. Questionário para avaliar o CER 4 APAE Colinas.")}
         tabIndex={0}
       >
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">

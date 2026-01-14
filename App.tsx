@@ -5,11 +5,11 @@ import { Survey } from './components/Survey';
 
 // Textos da aplicação
 const TEXTS = {
-  title: "SAÚDE SEM LIMITE",
-  subtitle: "Rede de Cuidados à Pessoa com Deficiência",
-  welcome: "Sua opinião fortalece o SUS e melhora o atendimento no CER IV.",
+  title: "Pesquisa de Satisfação",
+  subtitle: "CER IV - APAE Colinas",
+  welcome: "Sua opinião fortalece o SUS e melhora o atendimento no CER IV APAE Colinas.",
   startBtn: "INICIAR PESQUISA",
-  ttsWelcome: "Bem-vindo ao Saúde Sem Limite. Pesquisa de satisfação do Centro Especializado em Reabilitação CER 4 APAE Colinas. Toque em Iniciar Pesquisa.",
+  ttsWelcome: "Bem-vindo à Pesquisa de satisfação do Centro Especializado em Reabilitação CER 4 APAE Colinas. Toque em Iniciar Pesquisa.",
   ttsConfirm: "Iniciando pesquisa...",
   };
 
@@ -163,7 +163,7 @@ const App: React.FC = () => {
 
         {/* Bloco da Direita - Logos Institucionais */}
         <div className="flex flex-wrap justify-center md:justify-end items-center gap-6 md:gap-8">
-            <div className="font-bold text-gray-600">CER IV</div>
+            <div className="font-bold text-gray-600">CER IV APAE COLINAS</div>
             <div className="h-8 w-px bg-gray-300"></div>
             <div className="font-black text-xl text-gray-700 tracking-tighter">SUS</div>
             <div className="h-8 w-px bg-gray-300"></div>
@@ -193,12 +193,17 @@ const App: React.FC = () => {
 
       <div className="flex-grow flex flex-col items-center justify-center p-6 md:p-12 text-center z-10">
         <header className="mb-12 w-full max-w-4xl">
-            {/* Ícone da Marca */}
-            <div className="mx-auto mb-6 w-20 h-20 relative">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-6 h-6 bg-brand-blue rounded-full"></div>
-                <div className="absolute top-7 left-1/2 -translate-x-1/2 w-12 h-6 bg-brand-green rounded-t-full rounded-b-lg"></div>
-                <div className="absolute top-12 left-1/2 -translate-x-1/2 w-12 h-6 bg-brand-red rounded-b-full rounded-t-lg mix-blend-multiply opacity-90"></div>
-            </div>
+            {/* LOGO DA MARCA */}
+            {/* Certifique-se de salvar sua imagem como 'logo.png' na pasta public */}
+            <img 
+              src="logo.png" 
+              alt="Logo Saúde Sem Limite - Rede de Cuidados à Pessoa com Deficiência" 
+              className="mx-auto mb-8 w-auto h-32 md:h-48 object-contain"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none'; // Esconde se não encontrar a imagem
+                // Opcional: mostrar um texto de fallback ou o logo CSS antigo aqui
+              }}
+            />
 
             <h1 className="text-5xl md:text-7xl font-brand font-extrabold text-brand-blue mb-2 tracking-tight">
                 {TEXTS.title}

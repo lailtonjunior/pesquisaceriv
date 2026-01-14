@@ -8,7 +8,7 @@
 const ELEVEN_API_KEY = process.env.REACT_APP_ELEVEN_LABS_API_KEY || 'sk_fed0fae2a8f4d5c357ebbba9e676c4a79ce5eb6df6ae5cf1'; 
 
 // ID da voz (Padrão: "Rachel"). 
-const VOICE_ID = '21m00Tcm4TlvDq8ikWAM'; 
+const VOICE_ID = 'IKpiSijWzlhOL6uX83EH'; 
 
 const USE_ELEVEN_LABS = !!ELEVEN_API_KEY && ELEVEN_API_KEY.length > 10;
 
