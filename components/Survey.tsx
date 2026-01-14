@@ -333,7 +333,9 @@ export const Survey: React.FC<SurveyProps> = ({ onFinish, isAudioEnabled }) => {
             </div>
         </div>
         <p className="text-lg md:text-xl leading-relaxed">
-          Sua opinião é fundamental para fortalecermos a <strong>Rede de Cuidados à Pessoa com Deficiência</strong>.
+          Sua opinião é um instrumento importante para a avaliação dos atendimentos do CER IV. <br />
+          As respostas contribuem para o planejamento, a melhoria da qualidade e a transparência do serviço. <br />
+          Sua participação é essencial para o aprimoramento do cuidado no SUS. <br />
         </p>
         <AudioHint enabled={isAudioEnabled} />
       </section>
