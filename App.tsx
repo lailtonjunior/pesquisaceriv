@@ -7,10 +7,10 @@ import { Survey } from './components/Survey';
 const TEXTS = {
   title: "Pesquisa de Satisfação",
   subtitle: "CER IV - APAE Colinas",
-  welcome: "Sua opinião fortalece o SUS e melhora o atendimento no CER IV APAE Colinas.",
+  welcome: "Juntos, construímos um serviço de reabilitação cada vez mais qualificado.",
   startBtn: "INICIAR PESQUISA",
   ttsWelcome: "Bem-vindo à Pesquisa de satisfação do Centro Especializado em Reabilitação CER 4 APAE Colinas. Toque em Iniciar Pesquisa.",
-  ttsConfirm: "Iniciando pesquisa...",
+  ttsConfirm: "",
   };
 
 // PASSO FINAL:
